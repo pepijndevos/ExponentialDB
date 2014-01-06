@@ -16,7 +16,7 @@
         (String. buf)))))
 
 (defn write-bulk [writer arg]
-  (let [len (if arg (count arg) -1)]
+  (let [len (if arg (count (str arg)) -1)]
     (doto writer
       (.write "$")
       (.write (str len))
@@ -62,7 +62,7 @@
     (or (string? data)
         (nil? data))   (do (write-bulk writer data) (.flush writer))
     (number? data)     (write-int writer data)
-    (true? data)       (write-status "OK")
+    (true? data)       (write-status writer "OK")
     :else              (write-error "Unrecognized return type")))
 
 (defmacro try-command [writer & body]

@@ -11,6 +11,7 @@
         out (io/writer sock)]
     (loop []
       (let [[cmd & args] (protocol/parse-bulk in)]
+        (println cmd args)
         (protocol/try-command out
           (apply (ns-resolve 'exponentialdb.commands (symbol cmd)) state args)))
       (recur))))
