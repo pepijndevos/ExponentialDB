@@ -27,7 +27,7 @@
 
 (defn newest [state]
   (when (seq state)
-    (val (first state))))
+    (val (nth state 0))))
 
 (defn decay [state]
   (let [car (cardinality state)
