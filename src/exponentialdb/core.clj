@@ -15,6 +15,9 @@
     (dec
       (bit-and (inc n) (bit-not n)))))
 
+(def ^:dynamic *distribution* exponential-distribution)
+(def ^:dynamic *merge-fn* (fn [a b] b))
+
 (defn cardinality [state]
   (if (seq state)
     (inc (key (first state)))
@@ -24,15 +27,15 @@
   (when (seq state)
     (val (first state))))
 
-(defn decay [state distfn mergefn]
+(defn decay [state]
   (let [car (cardinality state)
-        idx (distfn car)
+        idx (*distribution* car)
         [leftkey leftval]   (nth (seq state) idx nil)
         [rightkey rightval] (nth (seq state) (inc idx) nil)]
     (if (and leftval rightval)
       (-> state
           (dissoc rightkey)
-          (assoc leftkey (mergefn leftval rightval)))
+          (assoc leftkey (*merge-fn* leftval rightval)))
       state)))
 
 (defn add-state [state f args]
@@ -40,13 +43,8 @@
     (cardinality state) 
     (apply f (newest state) args)))
 
-(defn basic-update [f & args]
-  (swap! state
-         #(-> %
-              (decay
-                exponential-distribution
-                (fn [a b] b))
-              (add-state f args))))
+(defn update [f & args]
+  (swap! state #(add-state (decay %) f args)))
 
 (defn serve [sock]
   (let [in (io/reader sock)
