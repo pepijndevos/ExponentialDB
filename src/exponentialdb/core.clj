@@ -1,7 +1,9 @@
 (ns exponentialdb.core
-  (require [clojure.java.io :as io]))
+  (require [clojure.java.io :as io]
+           [exponentialdb.protocol :as protocol]
+           [clojure.data.avl :as avl]))
 
-(def state (atom (sorted-map-by (comparator >))))
+(def state (atom (avl/sorted-map-by (comparator >))))
 
 (def pool (java.util.concurrent.Executors/newCachedThreadPool))
 
@@ -20,7 +22,7 @@
 
 (defn cardinality [state]
   (if (seq state)
-    (inc (key (first state)))
+    (inc (key (nth state 0)))
     0))
 
 (defn newest [state]
@@ -30,8 +32,8 @@
 (defn decay [state]
   (let [car (cardinality state)
         idx (*distribution* car)
-        [leftkey leftval]   (nth (seq state) idx nil)
-        [rightkey rightval] (nth (seq state) (inc idx) nil)]
+        [leftkey leftval]   (nth state idx nil)
+        [rightkey rightval] (nth state (inc idx) nil)]
     (if (and leftval rightval)
       (-> state
           (dissoc rightkey)
@@ -50,7 +52,10 @@
   (let [in (io/reader sock)
         out (io/writer sock)]
     (loop []
-      (println "hoi")
+      (let [cmd (protocol/parse-bulk in)]
+        (println cmd)
+        (protocol/try-command out
+          (/ 1 0)))
       (recur))))
 
 (defn -main [port]
