@@ -32,19 +32,22 @@
     (.write (str (count args)))
     (.write "\r\n"))
   (doseq [arg args]
-    (write-bulk writer arg)))
+    (write-bulk writer arg))
+  (.flush writer))
 
 (defn write-status [writer status]
   (doto writer
     (.write "+")
     (.write status)
-    (.write "\r\n")))
+    (.write "\r\n")
+    .flush))
 
 (defn write-error [writer error]
   (doto writer
     (.write "-ERR ")
     (.write error)
-    (.write "\r\n")))
+    (.write "\r\n")
+    .flush))
 
 (defmacro try-command [writer & body]
   `(try
@@ -57,5 +60,6 @@
   (doto writer
     (.write ":")
     (.write (str integer))
-    (.write "\r\n")))
+    (.write "\r\n")
+    .flush))
 
