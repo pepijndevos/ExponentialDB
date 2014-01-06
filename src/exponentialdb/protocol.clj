@@ -16,12 +16,15 @@
         (String. buf)))))
 
 (defn write-bulk [writer arg]
-  (doto writer
-    (.write "$")
-    (.write (str (count arg)))
-    (.write "\r\n")
-    (.write arg)
-    (.write "\r\n")))
+  (let [len (if arg (count arg) -1)]
+    (doto writer
+      (.write "$")
+      (.write (str len))
+      (.write "\r\n"))
+    (when arg
+      (doto writer
+        (.write arg)
+        (.write "\r\n")))))
 
 (defn write-multi-bulk [writer args]
   (doto writer
