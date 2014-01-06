@@ -23,7 +23,7 @@
       (.write "\r\n"))
     (when arg
       (doto writer
-        (.write arg)
+        (.write (str arg))
         (.write "\r\n")))))
 
 (defn write-multi-bulk [writer args]
@@ -38,23 +38,16 @@
 (defn write-status [writer status]
   (doto writer
     (.write "+")
-    (.write status)
+    (.write (str status))
     (.write "\r\n")
     .flush))
 
 (defn write-error [writer error]
   (doto writer
     (.write "-ERR ")
-    (.write error)
+    (.write (str error))
     (.write "\r\n")
     .flush))
-
-(defmacro try-command [writer & body]
-  `(try
-     ~@body
-     (catch Exception e#
-       (write-error ~writer
-                    (.getMessage e#)))))
 
 (defn write-int [writer integer]
   (doto writer
@@ -63,3 +56,21 @@
     (.write "\r\n")
     .flush))
 
+(defn serialize [writer data]
+  (cond
+    (coll? data)       (write-multi-bulk writer data)
+    (or (string? data)
+        (nil? data))   (do (write-bulk writer data) (.flush writer))
+    (number? data)     (write-int writer data)
+    (true? data)       (write-status "OK")
+    :else              (write-error "Unrecognized return type")))
+
+(defmacro try-command [writer & body]
+  `(let [writer# ~writer]
+     (try
+       (serialize writer#
+                  (do ~@body))
+       (catch Exception e#
+         (.printStackTrace e#)
+         (write-error writer#
+                      (.getMessage e#))))))
